@@ -32,7 +32,6 @@ Run `source .venv/bin/activate` again in every new terminal before using
     make setup        # once: downloads and builds ns-3, a few minutes
     make doctor       # every check should pass
 
-If `make setup` fails, see `FAQs.md`.
 
 ### Using the instructional machines
 
