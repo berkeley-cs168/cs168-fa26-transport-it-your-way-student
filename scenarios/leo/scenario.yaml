@@ -1,0 +1,54 @@
+id: leo
+title: LEO satellite networking
+view: orbit  # picture used by VIS=1
+view_labels: {terminal: rescue-beacon, ground: ground station}
+
+# Runs at real speed: nothing is scaled.
+claims:
+  throughput_multiplier: 1.0
+  latency_multiplier: 1.0
+  time_factor: 1.0
+  note: "wire units are scenario units, nothing is scaled"
+
+topology:
+  # Downlink: sender0 (ground) to receiver0 (terminal).
+  # Uplink: sender1 (terminal) to receiver1 (ground).
+  hosts:
+    senders: 2
+    receivers: 2
+  # Three satellites take turns relaying between ground and terminal.
+  switches: [ground, terminal, sat0, sat1, sat2]
+  links:
+    - {a: sender0, b: ground, delay_ms: 0.1, queue_pkts: 1000}
+    - {a: receiver1, b: ground, delay_ms: 0.1, queue_pkts: 1000}
+    - {a: sender1, b: terminal, delay_ms: 0.1, queue_pkts: 1000}
+    - {a: receiver0, b: terminal, delay_ms: 0.1, queue_pkts: 1000}
+
+    # Ground station to each satellite.
+    - {a: ground, b: "sat*", delay_ms: 5.7, queue_pkts: 1000}
+
+    # Each satellite to the terminal: 100 Mbps down, 20 Mbps up.
+    # RTT is about 30-38 ms, depending on where the satellite is.
+    - a: "sat*"
+      b: terminal
+      delay_ms: 5.7
+      queue_pkts: 250
+      a_to_b: {bw_mbps: 100}
+      b_to_a: {bw_mbps: 20}
+
+# One satellite is in view at a time, for 5 s. Then none is for 0.3 s while
+# the next one comes into view. Anything the old satellite was carrying is
+# lost.
+constellation:
+  satellites: "sat*"
+  pass_s: 5.0
+  handover_ms: 300
+  phase_s: 0.0
+  slant_delay_ms: {overhead: 1.8, horizon: 3.7}
+  step_s: 0.25
+
+requirements:
+  reliability: {min_ratio: 1.0, min_deadline_met_ratio: 0.90}
+  # Measured from the first message offered to the last one delivered.
+  throughput_bps: {min_active: 28000000}
+  overhead: {max_ratio: 1.15}

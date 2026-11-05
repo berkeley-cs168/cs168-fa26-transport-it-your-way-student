@@ -1,0 +1,20 @@
+# The default workload for `make run`: two small all-to-all rounds on a
+# problem-free network. Graded workloads are harder. To write your own, copy
+# this into workload.yaml.
+
+id: basic_workload
+seed: 1
+drain_s: 4
+
+flows:
+  - pattern: incast     # every sender bursts together
+    src: "sender*"
+    dst: "receiver*"
+    exclude_self: true  # no server sends to itself
+    direction: allreduce
+    start_s: 1.0
+    period_s: 3.0       # seconds between rounds
+    rounds: 2
+    burst_bytes: 5600   # per sender, per receiver, per round: 4 packets
+    msg_bytes: 1400
+    deadline_s: 1.5

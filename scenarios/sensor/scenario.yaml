@@ -1,0 +1,45 @@
+id: sensor
+title: Distributed sensor network, Bay Area buoys
+view: bay  # picture used by VIS=1
+view_labels: {radio: Campanile}
+
+# The simulation runs 60x faster than real time, with link rates 60x higher,
+# so the same amount of data fits in each second of buoy time. Workloads write
+# times in buoy seconds (time_unit: claimed), and results convert back.
+parameters: scaled
+claims:
+  throughput_multiplier: 0.0166667
+  latency_multiplier: 60.0
+  time_factor: 60.0
+  note: "wire runs 60x faster than the buoys, and 60x their bit rate to match"
+
+topology:
+  hosts:
+    senders: 4      # buoys
+    receivers: 1    # shore station
+  switches: [radio]
+  links:
+    # Each buoy's radio: 100 bps, 240 ms one way, 5% loss (real units).
+    - {a: "sender*", b: radio, bw_mbps: 0.006, delay_ms: 4, loss_pct: 5, queue_pkts: 20}
+
+    # Radio to shore: 400 bps, 240 ms one way (real units).
+    - {a: radio, b: receiver0, bw_mbps: 0.024, delay_ms: 4, queue_pkts: 32}
+
+requirements:
+  reliability: {min_ratio: 0.97}
+  # 95% of readings within 5 minutes (300000 ms).
+  latency_ms: {p95_max: 300000}
+  # Of the messages labelled alarm (30 s deadline), the fraction on time.
+  deadline_met: {min_alarm: 0.90}
+  overhead: {max_ratio: 1.7}
+
+# Real-unit version of the network, for `parameters: realistic`.
+realistic:
+  claims:
+    throughput_multiplier: 1.0
+    latency_multiplier: 1.0
+    time_factor: 1.0
+    note: "real numbers: 100 bps buoys, 400 bps backhaul"
+  links:
+    - {a: "sender*", b: radio, bw_mbps: 0.0001, delay_ms: 240, loss_pct: 5, queue_pkts: 20}
+    - {a: radio, b: receiver0, bw_mbps: 0.0004, delay_ms: 240, queue_pkts: 32}

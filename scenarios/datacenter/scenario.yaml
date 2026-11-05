@@ -1,0 +1,64 @@
+id: datacenter
+title: Data center backbone, LLM training traffic
+view: clos  # picture used by VIS=1
+view_labels: {rack0: top of rack 0, rack1: top of rack 1, rack2: top of rack 2}
+
+# Nine servers in three racks. At the end of each training step, every server
+# sends to every other server at once, and the step ends when the last message
+# arrives.
+#
+# The real network is 10 Gbps with a 1 ms RTT. The simulation runs it 100x
+# slower (100 Mbps, 100 ms RTT); results convert back to real units.
+parameters: scaled
+claims:
+  throughput_multiplier: 100.0
+  latency_multiplier: 0.01
+  time_factor: 1.0
+  note: "wire 100 Mbps / 100 ms RTT stands in for 10 Gbps / 1 ms RTT"
+
+topology:
+  # Server N is both senderN and receiverN. Rack 0 holds servers 0-2, rack 1
+  # holds 3-5, rack 2 holds 6-8. The racks connect through one spine switch.
+  hosts:
+    senders: 9
+    receivers: 9
+  switches: [rack0, rack1, rack2, spine]
+  links:
+    # Server to its rack switch.
+    - {a: "sender[0-2]", b: rack0, bw_mbps: 100, delay_ms: 20, queue_pkts: 1000}
+    - {a: "sender[3-5]", b: rack1, bw_mbps: 100, delay_ms: 20, queue_pkts: 1000}
+    - {a: "sender[6-8]", b: rack2, bw_mbps: 100, delay_ms: 20, queue_pkts: 1000}
+
+    # Rack switch to server.
+    - {a: rack0, b: "receiver[0-2]", bw_mbps: 100, delay_ms: 20, queue_pkts: 64}
+    - {a: rack1, b: "receiver[3-5]", bw_mbps: 100, delay_ms: 20, queue_pkts: 64}
+    - {a: rack2, b: "receiver[6-8]", bw_mbps: 100, delay_ms: 20, queue_pkts: 64}
+
+    # Rack switch to spine. RTT is 100 ms between racks, 80 ms within a rack.
+    - {a: "rack[0-2]", b: spine, bw_mbps: 150, delay_ms: 5, queue_pkts: 64}
+
+# step_slowdown: each round's time (until its last message arrives) divided by
+# the fastest the network could possibly finish it. 1.0 is perfect. The
+# requirement is on the mean over all rounds. Your run's results.json lists
+# each round under scenario_specific.steps.
+requirements:
+  reliability: {min_ratio: 1.0}
+  step_slowdown: {mean_max: 2.5}
+  overhead: {max_ratio: 1.30}
+
+# Real-unit version of the network, for `parameters: realistic`.
+realistic:
+  claims:
+    throughput_multiplier: 1.0
+    latency_multiplier: 1.0
+    time_factor: 1.0
+    note: "real numbers: 10 Gbps, 1 ms RTT"
+  wire_time_divisor: 100.0
+  links:
+    - {a: "sender[0-2]", b: rack0, bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 1000}
+    - {a: "sender[3-5]", b: rack1, bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 1000}
+    - {a: "sender[6-8]", b: rack2, bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 1000}
+    - {a: rack0, b: "receiver[0-2]", bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 64}
+    - {a: rack1, b: "receiver[3-5]", bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 64}
+    - {a: rack2, b: "receiver[6-8]", bw_mbps: 10000, delay_ms: 0.2, queue_pkts: 64}
+    - {a: "rack[0-2]", b: spine, bw_mbps: 15000, delay_ms: 0.05, queue_pkts: 64}

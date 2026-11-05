@@ -1,0 +1,26 @@
+# The default workload for `make run`: light traffic in both directions on a
+# problem-free network. Graded workloads are harder. To write your own, copy
+# this into workload.yaml.
+
+id: basic_workload
+seed: 1
+drain_s: 5              # keep running this long after the last message
+
+flows:
+  - pattern: bulk       # a steady stream, ground to terminal
+    src: sender0
+    dst: receiver0
+    direction: downlink
+    rate_bps: 200000    # 200 kbps
+    duration_s: 5.0
+    msg_bytes: 1400
+    deadline_s: 2.0
+
+  - pattern: bulk       # and terminal to ground
+    src: sender1
+    dst: receiver1
+    direction: uplink
+    rate_bps: 50000     # 50 kbps
+    duration_s: 5.0
+    msg_bytes: 400
+    deadline_s: 2.0

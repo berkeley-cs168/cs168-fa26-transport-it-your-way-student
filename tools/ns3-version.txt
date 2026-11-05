@@ -1,0 +1,9 @@
+# The ns-3 release every trial runs on. tools/setup-ns3.sh downloads this and
+# refuses it if the checksum differs. Changing it changes results, so do it
+# between semesters, rebuild the Gradescope image, and rerun `make test`.
+#
+# nsnam.org does not publish checksums; this one was recorded from the first
+# download on 2026-10-17.
+version=3.48
+url=https://www.nsnam.org/releases/ns-3.48.tar.bz2
+sha256=5700ceecef2c9bc862502914b2237fe798d4c7ae07652247050e300e49407c4d

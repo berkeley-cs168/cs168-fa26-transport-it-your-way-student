@@ -1,0 +1,139 @@
+# Your test workload: the messages your protocol must deliver, and the network
+# problems that happen while it does.
+#
+# To use it, add at least one flow below, then run:
+#
+#     make run SCENARIO=leo WORKLOAD=workload.yaml
+#
+# Results go to runs/leo-workload/. Replace leo with your scenario.
+# For a complete working example, see
+# scenarios/<your scenario>/workloads/basic_workload.yaml.
+
+seed: 1        # Random choices (like Poisson arrival times) depend on this.
+               # Same seed, same messages every run.
+drain_s: 5     # How long to keep running after the last message is offered.
+
+# Sensor only: uncomment this to write all times in buoy seconds. The sensor
+# simulation runs 60x faster than real time, so without it, 300 means 300
+# simulated seconds, which is 5 hours of buoy time.
+# time_unit: claimed
+
+
+# ---------------------------------------------------------------------------
+# Flows: who sends what, and when
+# ---------------------------------------------------------------------------
+
+flows: []
+
+# Example: replace `flows: []` above with this.
+#
+# flows:
+#   - pattern: bulk           # how messages arrive (see the list below)
+#     src: sender0            # who sends
+#     dst: receiver0          # who receives
+#     start_s: 0.0            # when the flow starts, in seconds
+#     rate_bps: 20000000      # 20 Mbps
+#     duration_s: 5.0
+#     msg_bytes: 1400         # size of each message
+#     deadline_s: 2.0         # optional: time allowed for each message
+#     direction: downlink     # optional: a label for this flow's messages
+#
+# Patterns, and the settings each one needs:
+#
+#   bulk      A steady stream: rate_bps and duration_s.
+#             Or total_bytes instead, to offer everything at once.
+#   poisson   Random arrivals: mean_interval_s (average time between
+#             messages), and duration_s or count. Gaps are random, so some
+#             messages come close together and others far apart. Each
+#             sender-receiver pair gets its own stream at this rate.
+#   incast    Every sender sends a burst at the same moment, repeated:
+#             burst_bytes (per sender, per receiver), period_s (time between
+#             bursts), rounds. Optional: jitter_s spreads each burst's start
+#             randomly by up to this much.
+#   burst     Quiet, then several messages at once: msgs_per_burst,
+#             gap_min_s and gap_max_s (random wait between bursts),
+#             duration_s. Optional: intra_burst_gap_s spaces messages
+#             within a burst.
+#
+# Notes:
+#   - src and dst take one host name, or a pattern like "sender*" for all
+#     senders, or "sender[0-2]" for senders 0 to 2. A flow sends from every
+#     src to every dst.
+#   - A message larger than about 1400 bytes won't fit in one datagram
+#     (1472 bytes, minus your protocol's header), so your protocol would
+#     have to split it.
+#   - A message that misses its deadline still counts as delivered, but late.
+#   - Results report throughput separately for each direction label.
+#
+# Hosts in each scenario:
+#
+#   leo         sender0 -> receiver0 is the downlink (ground to terminal).
+#               sender1 -> receiver1 is the uplink (terminal to ground).
+#   datacenter  Nine servers in three racks. Server N is both senderN and
+#               receiverN. Rack 0 holds servers 0-2, rack 1 holds 3-5, rack 2
+#               holds 6-8. To send from every server to every other one, use
+#               src: "sender*", dst: "receiver*", and add exclude_self: true
+#               so no server sends to itself.
+#   sensor      sender0 to sender3 are buoys. receiver0 is the shore station.
+#
+# Sensor alarms: besides routine readings, a buoy sometimes sends an urgent
+# alarm that must reach shore within 30 seconds of buoy time. Any message in
+# a flow with `direction: alarm` counts as an alarm. One requirement,
+# deadline_met.min_alarm, checks what fraction of alarms arrived in time. If
+# your workload has no alarms, it always shows as met. To test with some, add
+# a flow like this (with time_unit: claimed set):
+#
+#   - pattern: poisson
+#     src: "sender*"
+#     dst: receiver0
+#     direction: alarm        # this label is what makes them alarms
+#     mean_interval_s: 1800   # about one per buoy every half hour
+#     duration_s: 3600
+#     msg_bytes: 8
+#     deadline_s: 30
+#
+# Your protocol can't see the label, but it can see each message's deadline
+# (msg.deadline_s), which is how it can tell an alarm from a routine reading.
+
+
+# ---------------------------------------------------------------------------
+# Events: what goes wrong with the network, and when
+# ---------------------------------------------------------------------------
+
+events: []
+
+# Example: replace `events: []` above with this.
+#
+# events:
+#   - {t_s: 2.0, kind: blackout, target: "sat*-terminal", duration_s: 2.0}
+#
+# That blacks out the satellite-to-terminal link from 2 s to 4 s.
+#
+# Kinds, and the settings each one needs:
+#
+#   blackout      none. The link carries nothing, and drops what it held.
+#   loss_burst    loss_pct, the percentage of packets dropped.
+#   delay_change  delay_ms. Optional: jitter_ms.
+#   bw_change     bw_mbps, the new bandwidth.
+#
+# Every event takes:
+#   t_s           when it starts, in seconds.
+#   target        which link (see below).
+#   duration_s    optional: how long it lasts. Leave it out to make the
+#                 change permanent.
+#   direction     optional: both (the default), forward, or reverse.
+#                 forward means from the first name in the link to the
+#                 second, so "sat*-terminal" forward is satellite to terminal.
+#
+# Links in each scenario (a * matches any number):
+#
+#   leo         "sat*-terminal"   satellite to terminal, the bottleneck
+#               "ground-sat*"     ground station to satellite
+#               The satellites also hand over on their own: each one is in
+#               view for 5 s, then nothing gets through for 0.3 s.
+#   datacenter  "rack0-spine"     a rack's link to the spine (rack1, rack2 too)
+#               "sender4-rack1"   one server's sending link
+#               "rack1-receiver4" one server's receiving link
+#               To make server 4 fail, black out both of its links.
+#   sensor      "sender0-radio"   one buoy's radio link (sender1 to sender3 too)
+#               "radio-receiver0" the link from the radio to shore

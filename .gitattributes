@@ -1,0 +1,3 @@
+# Check out every text file with LF endings, even on Windows with
+# core.autocrlf set. CRLF breaks the shell scripts and the Makefile under WSL.
+* text=auto eol=lf

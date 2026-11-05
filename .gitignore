@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# ns-3 and the backend, built by `make setup`
+build/
+transportlab/_tlsim*.so
+transportlab/_tlsim*.pyd
+
+# trial output from `make run`
+runs/

@@ -1,0 +1,25 @@
+# The default workload for `make run`: each buoy reports a few readings now
+# and then, on a network with no extra problems. Graded workloads are harder.
+# To write your own, copy this into workload.yaml.
+#
+# Times are in buoy seconds (time_unit: claimed). The simulation runs 60x
+# faster, so 300 buoy seconds take 5 seconds to run.
+
+id: basic_workload
+seed: 1
+time_unit: claimed
+duration_s: 1800        # half an hour of buoy time, 30 seconds of yours
+drain_s: 600
+
+flows:
+  - pattern: burst      # quiet, then a handful of readings
+    src: "sender*"
+    dst: receiver0
+    direction: uplink
+    start_s: 60
+    gap_min_s: 300      # five minutes between bursts
+    gap_max_s: 600      # up to ten
+    msgs_per_burst: 4
+    msg_bytes: 32
+    duration_s: 1500
+    deadline_s: 300     # five minutes to get a reading home
